@@ -1,29 +1,3 @@
-// extern crate rusqlite;
-
-// #[macro_use]
-// extern crate error_chain;
-
-// mod errors {
-//     error_chain!{
-//     }
-
-// }
-// use errors::*;
-
-// use std::error::Error;
-// use std::fmt;
-
-
-// #[derive(Debug)]
-// struct MyError(String);
-// impl fmt::Display for MyError {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "There is an error: {}", self.0)
-//     }
-// }
-// impl Error for MyError {}
-
-
 use rusqlite::{Connection};
 use rusqlite::NO_PARAMS;
 
@@ -54,7 +28,7 @@ fn main(){
 	let mut task_res = get(1, &conn).expect("Unable to get task from DB1");
 	println!("TASK1 = {:?}", task_res);
 
-	//task_res.finished = true;
+	task_res.finished = true;
 
 	update(task_res, &conn).unwrap();
 
@@ -79,17 +53,47 @@ struct Task {
 fn get(id: i32, conn: &rusqlite::Connection) -> std::result::Result<Task, Box<std::error::Error>> {
 	match conn.query_row::<Task, _, _>(
 		"SELECT
-		id, task, finished
+			id,
+			task,
+			finished
 		FROM todo
 		WHERE id = ?1
 		",
 		&[id.to_string()],
 		|row|{
+
+			let mut is_task_finished = false;
+			//due to sqlite storing this a string or int we need to do this.
+			//ugly
+			//TODO find out how to do this better with a more generic solution
+			match row.get::<_, String>(2)
+			{
+				Ok(value) => {
+					if value == "true" {
+						is_task_finished = true;
+					}
+				}
+				Err(err) => {
+					//check error type
+					if err != rusqlite::Error::InvalidColumnType(2, rusqlite::types::Type::Integer) {
+						return Err(err.into())
+					}
+
+					match row.get::<_, i32>(2) {
+						Ok(value) => {
+							if value == 1 {
+								is_task_finished = true
+							}
+						},
+						Err(err) => return Err(err.into())
+					}
+				}
+			}
 			Ok(
 				Task{
 					id: row.get(0)?,
 					task: row.get(1)?,
-					finished: row.get(2)?,
+					finished: is_task_finished,
 				}
 			)
 		}
@@ -98,18 +102,18 @@ fn get(id: i32, conn: &rusqlite::Connection) -> std::result::Result<Task, Box<st
 			Err(err) => Err(err.into())
 		}
 }
-//Option<Box<std::error::Error>> , Box<dyn std::error::Error>
+
 fn add(t: Task, conn: &rusqlite::Connection) -> Result<(), Box<std::error::Error>> {
 	match conn.execute(
-		"insert into todo
-			(task, finished)
-			values
-			(?1, 0)
+		"INSERT INTO todo
+		(task, finished)
+		VALUES
+		(?1, 0)
 		",
 		&[t.task],
 	){
-	 	Ok(updated) => {
-			 if updated != 1 {
+	 	Ok(rows_affected) => {
+			 if rows_affected != 1 {
 				 Err("Nothing was inserted")?;
 			 }
 			Ok(())
@@ -140,20 +144,3 @@ fn update(t: Task, conn: &rusqlite::Connection) -> Result<(), Box<std::error::Er
 		Err(err) => Err(err.into())
 	}
 }
-
-
-// pub fn run() -> Result<(), Box<dyn Error>> {
-//     let condition = true;
-
-//     if condition {
-//         return Result::Err(Box::new(MyError("Oops".into())));
-//     }
-
-//     Ok(())
-// }
-
-// fn main() {
-//     if let Err(e) = run() {
-//         println!("{}", e); // "There is an error: Oops"
-//     }
-// }
