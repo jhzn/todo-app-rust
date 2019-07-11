@@ -1,50 +1,43 @@
-
-
 fn main(){
+	let todo_store = storage::TodoStorer::setup("todo.db".to_string()).unwrap();
 
-	let _new_task = Task{
+	let _new_task = ToDoTask{
 		id:None,
 		task: String::from("Buy milk"),
 		finished:false,
 	};
+	todo_store.add(_new_task).unwrap();
+	let mut stored_task = todo_store.get(1).expect("Unable to get task after creating it");
+	println!("Stored task = {:?}", stored_task);
 
-	let todo_storer = storage::TodoStorer::setup("todo.db".to_string()).unwrap();
+	stored_task.finished = true;
+	todo_store.update(stored_task).expect("Unable to update task");
 
-	todo_storer.add(_new_task).unwrap();
-	let mut task_res = todo_storer.get(1).expect("Unable to get task from DB1");
-	println!("TASK1 = {:?}", task_res);
-
-	task_res.finished = true;
-
-	todo_storer.update(task_res).unwrap();
-
-
-	let task_res2 = todo_storer.get(1).expect("Unable to get task from DB2");
-	println!("TASK2 = {:?}", task_res2);
+	let updated_task = todo_store.get(1).expect("Unable to get task from after updating it");
+	println!("Updated task = {:?}", updated_task);
 }
 
 #[derive(Debug)]
-pub struct Task {
-	id: Option<i32>,
+pub struct ToDoTask {
+	id: Option<i32>, //Option because this is set by the database
 	task: String,
 	finished: bool,
 }
 trait ToDoStore {
+	//TODO make setup nicer, input arg is implicitly hard coupled to sqlite
 	fn setup(db_file_path: String) -> std::result::Result<Box<Self>, Box<std::error::Error>>;
-	fn get(&self, id: i32) -> std::result::Result<Task, Box<std::error::Error>>;
-	fn add(&self, task: Task) -> std::result::Result<(), Box<std::error::Error>>;
-	fn update(&self, task: Task) -> std::result::Result<(), Box<std::error::Error>>;
+	fn get(&self, id: i32) -> std::result::Result<ToDoTask, Box<std::error::Error>>;
+	fn add(&self, task: ToDoTask) -> std::result::Result<(), Box<std::error::Error>>;
+	fn update(&self, task: ToDoTask) -> std::result::Result<(), Box<std::error::Error>>;
 }
-
 
 pub mod storage{
 
-	use crate::Task;
+	use crate::ToDoTask;
 	use crate::ToDoStore;
 	use rusqlite::{Connection};
 	use rusqlite::NO_PARAMS;
 
-	//#[derive(Copy)]
 	pub struct TodoStorer{
 		conn: rusqlite::Connection
 	}
@@ -76,8 +69,8 @@ pub mod storage{
 			}
 		}
 
-		fn get(&self, id: i32) -> std::result::Result<Task, Box<std::error::Error>> {
-			match self.conn.query_row::<Task, _, _>(
+		fn get(&self, id: i32) -> std::result::Result<ToDoTask, Box<std::error::Error>> {
+			match self.conn.query_row::<ToDoTask, _, _>(
 				"SELECT
 					id,
 					task,
@@ -91,7 +84,7 @@ pub mod storage{
 					let mut is_task_finished = false;
 					//due to sqlite being dynamically typed, the type of a boolean is uncertain
 					//ugly
-					//TODO find out how to do this better with a more generic solution or just use an i8 as sqlite column type
+					//TODO find out how to do this better with less boilerplate or just use an i8 as sqlite column type instead of boolean
 					match row.get::<_, String>(2)
 					{
 						Ok(value) => {
@@ -100,7 +93,7 @@ pub mod storage{
 							}
 						}
 						Err(err) => {
-							//check error type
+							//if this is false then the column is stored is stored as a INT
 							if err != rusqlite::Error::InvalidColumnType(2, rusqlite::types::Type::Integer) {
 								return Err(err.into())
 							}
@@ -116,7 +109,7 @@ pub mod storage{
 						}
 					}
 					Ok(
-						Task{
+						ToDoTask{
 							id: row.get(0)?,
 							task: row.get(1)?,
 							finished: is_task_finished,
@@ -129,7 +122,7 @@ pub mod storage{
 				}
 		}
 
-		fn add(&self, t: Task) -> Result<(), Box<std::error::Error>> {
+		fn add(&self, t: ToDoTask) -> Result<(), Box<std::error::Error>> {
 			match self.conn.execute(
 				"INSERT INTO todo
 				(task, finished)
@@ -140,7 +133,7 @@ pub mod storage{
 			){
 				Ok(rows_affected) => {
 					if rows_affected != 1 {
-						Err("Wrong number of rows affected")?;
+						Err("Wrong number of rows affected")?; //should be a panic but trying out mixing return error types
 					}
 					Ok(())
 				},
@@ -148,7 +141,7 @@ pub mod storage{
 			}
 		}
 
-		fn update(&self, t: Task) -> Result<(), Box<std::error::Error>>{
+		fn update(&self, t: ToDoTask) -> Result<(), Box<std::error::Error>>{
 			match self.conn.execute(
 				"UPDATE todo SET
 					task = ?1,
@@ -163,7 +156,7 @@ pub mod storage{
 			){
 				Ok(rows_affected) => {
 					if rows_affected != 1 {
-						Err("Wrong number of rows affected")?
+						Err("Wrong number of rows affected")? //should be a panic but trying out mixing return error types
 					}
 					Ok(())
 				},
