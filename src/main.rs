@@ -18,7 +18,7 @@ fn main(){
 			return ();
 		}
 
-		let get_enum_from_program_arg = |program_arg: &str| -> Result<ToDoActions, Box<Error>> {
+		let get_enum_from_program_arg = |program_arg: &str| -> Result<ToDoActions, Box<dyn Error>> {
 			match program_arg.trim().to_lowercase().as_ref() {
 				"get" => Ok(ToDoActions::Get),
 				"list" => Ok(ToDoActions::List),
@@ -155,12 +155,12 @@ enum ToDoActions {
 
 trait ToDoStore {
 	//TODO make setup nicer, input arg is implicitly hard coupled to sqlite
-	fn setup(db_file_path: String, reset_store: bool) -> Result<Box<Self>, Box<Error>>;
-	//fn run_tx() -> Box<Error>;
-	fn get(&self, id: i32) -> Result<ToDoTask, Box<Error>>;
-	fn get_all(&self) -> Result<Vec<ToDoTask>, Box<Error>>;
-	fn add(&self, task: ToDoTask) -> Result<(), Box<Error>>;
-	fn update(&self, task: ToDoTask) -> Result<(), Box<Error>>;
+	fn setup(db_file_path: String, reset_store: bool) -> Result<Box<Self>, Box<dyn Error>>;
+	//fn run_tx() -> Box<dyn Error>;
+	fn get(&self, id: i32) -> Result<ToDoTask, Box<dyn Error>>;
+	fn get_all(&self) -> Result<Vec<ToDoTask>, Box<dyn Error>>;
+	fn add(&self, task: ToDoTask) -> Result<(), Box<dyn Error>>;
+	fn update(&self, task: ToDoTask) -> Result<(), Box<dyn Error>>;
 }
 
 pub mod storage{
@@ -177,7 +177,7 @@ pub mod storage{
 	/// Retrieves a single task if task_id is given else if task_id is omitted then all tasks are retrieved
 	///
 	// Function probably does to much, potential refactor, it is private so okey, leaving as is atm
-	fn get_tasks(todo_storer: &TodoStorer, task_id: Option<i32>) -> Result<Vec<ToDoTask>, Box<Error>> {
+	fn get_tasks(todo_storer: &TodoStorer, task_id: Option<i32>) -> Result<Vec<ToDoTask>, Box<dyn Error>> {
 
 		let (sql_condition, sql_input_parameters) = match task_id.is_some() {
 			true => {
@@ -250,7 +250,7 @@ pub mod storage{
 
 	impl ToDoStore for TodoStorer {
 
-		fn setup(db_file_path: String, reset_store: bool) -> Result<Box<Self>, Box<Error>>{
+		fn setup(db_file_path: String, reset_store: bool) -> Result<Box<Self>, Box<dyn Error>>{
 
 			let storer = TodoStorer{
 				conn: Connection::open(db_file_path).expect("unable to open sqlite database")
@@ -278,7 +278,7 @@ pub mod storage{
 			Ok(Box::new(storer))
 		}
 
-		fn get(&self, id: i32) -> Result<ToDoTask, Box<Error>> {
+		fn get(&self, id: i32) -> Result<ToDoTask, Box<dyn Error>> {
 			let tasks = get_tasks(&self, Some(id));
 			match tasks {
 				Ok(tasks) => {
@@ -290,11 +290,11 @@ pub mod storage{
 				Err(err) => return Err(err.into())
 			}
 		}
-		fn get_all(&self) -> Result<Vec<ToDoTask>, Box<Error>> {
+		fn get_all(&self) -> Result<Vec<ToDoTask>, Box<dyn Error>> {
 			return get_tasks(&self, None);
 		}
 
-		fn add(&self, t: ToDoTask) -> Result<(), Box<Error>> {
+		fn add(&self, t: ToDoTask) -> Result<(), Box<dyn Error>> {
 			match self.conn.execute(
 				"INSERT INTO todo
 				(task, finished)
@@ -313,7 +313,7 @@ pub mod storage{
 			}
 		}
 
-		fn update(&self, t: ToDoTask) -> Result<(), Box<Error>>{
+		fn update(&self, t: ToDoTask) -> Result<(), Box<dyn Error>>{
 			match self.conn.execute(
 				"UPDATE todo SET
 					task = ?1,
