@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io;
 
-fn main(){
+fn main() {
 	let todo_store = storage::TodoStorer::setup("todo.db".to_string(), true).unwrap();
 
 	loop {
@@ -39,11 +39,12 @@ fn main(){
 				let task_id: i32 = args[1].parse().expect("Invalid id given");
 				let stored_task = todo_store.get(task_id).expect("Unable to get task");
 				stored_task.pretty_print_to_console();
-			},
+			}
 			ToDoActions::List => {
 				println!("\nSelected list tasks mode!\n");
 				println!("Currently stored tasks are:");
-				let stored_todo_tasks = todo_store.get_all().expect("Unable to retrieve todo tasks");
+				let stored_todo_tasks =
+					todo_store.get_all().expect("Unable to retrieve todo tasks");
 				if stored_todo_tasks.is_empty() {
 					println!("No tasks are stored!");
 				} else {
@@ -51,7 +52,6 @@ fn main(){
 						task.pretty_print_to_console();
 					}
 				}
-
 			}
 			ToDoActions::Add => {
 				println!("\nSelected task creation mode!\nEnter task name:");
@@ -59,22 +59,25 @@ fn main(){
 				io::stdin().read_line(&mut x).expect("Error reading input");
 				let task_name: &str = x.trim();
 
-				let _new_task = ToDoTask{
-					id:None,
+				let _new_task = ToDoTask {
+					id: None,
 					task: String::from(task_name),
-					finished:false,
+					finished: false,
 				};
 				todo_store.add(_new_task).expect("Unable to add task");
-			},
+			}
 			ToDoActions::Update => {
-
-				let currently_stored_tasks = &todo_store.get_all().expect("Unable to retrieve tasks when trying to update");
+				let currently_stored_tasks = &todo_store
+					.get_all()
+					.expect("Unable to retrieve tasks when trying to update");
 				println!("\nCurrently stored Tasks:");
 				for task in currently_stored_tasks {
 					task.copy().pretty_print_to_console();
 				}
 
-				println!("\nSelected task updating mode!\nEnter id of task which you want to modifiy");
+				println!(
+					"\nSelected task updating mode!\nEnter id of task which you want to modifiy"
+				);
 				let mut x = String::new();
 				io::stdin().read_line(&mut x).expect("Error reading input");
 				let task_id: i32 = x.trim().parse().expect("Unable to parse task id");
@@ -90,7 +93,7 @@ fn main(){
 					for task in currently_stored_tasks {
 						if task.id.unwrap() == task_id {
 							found_task = true;
-							task_name =  &task.task;
+							task_name = &task.task;
 						}
 					}
 					if !found_task {
@@ -110,13 +113,13 @@ fn main(){
 					}
 				};
 
-				let task = ToDoTask{
+				let task = ToDoTask {
 					id: Some(task_id),
 					task: task_name.to_string(),
 					finished: is_task_finished,
 				};
 				todo_store.update(task).expect("Unable to update task");
-			},
+			}
 		};
 	}
 }
@@ -128,16 +131,19 @@ pub struct ToDoTask {
 	finished: bool,
 }
 impl ToDoTask {
-	fn pretty_print_to_console(self){
+	fn pretty_print_to_console(self) {
 		let task_id = match self.id.is_some() {
 			true => self.id.unwrap().to_string(),
 			false => String::from(""),
 		};
-		println!(" - ID: {}, Task: {}, Finished: {:?}", task_id, self.task, self.finished)
+		println!(
+			" - ID: {}, Task: {}, Finished: {:?}",
+			task_id, self.task, self.finished
+		)
 	}
 	//cant derive copy trait, implementing it here instead
-	fn copy (&self) -> Self {
-		return ToDoTask{
+	fn copy(&self) -> Self {
+		return ToDoTask {
 			id: self.id,
 			task: self.task.clone(),
 			finished: self.finished,
@@ -163,115 +169,106 @@ trait ToDoStore {
 	fn update(&self, task: ToDoTask) -> Result<(), Box<dyn Error>>;
 }
 
-pub mod storage{
+pub mod storage {
 
-	use std::error::Error;
-	use crate::ToDoTask;
 	use crate::ToDoStore;
-	use rusqlite::{Connection};
+	use crate::ToDoTask;
+	use rusqlite::Connection;
 	use rusqlite::NO_PARAMS;
+	use std::error::Error;
 
-	pub struct TodoStorer{
-		conn: rusqlite::Connection
+	pub struct TodoStorer {
+		conn: rusqlite::Connection,
 	}
 	/// Retrieves a single task if task_id is given else if task_id is omitted then all tasks are retrieved
 	///
 	// Function probably does to much, potential refactor, it is private so okey, leaving as is atm
-	fn get_tasks(todo_storer: &TodoStorer, task_id: Option<i32>) -> Result<Vec<ToDoTask>, Box<dyn Error>> {
-
+	fn get_tasks(
+		todo_storer: &TodoStorer,
+		task_id: Option<i32>,
+	) -> Result<Vec<ToDoTask>, Box<dyn Error>> {
 		let (sql_condition, sql_input_parameters) = match task_id.is_some() {
-			true => {
-				(" WHERE id = ?1", vec![task_id.unwrap().to_string()])
-			},
-			false => {
-				("", vec![])
-			}
+			true => (" WHERE id = ?1", vec![task_id.unwrap().to_string()]),
+			false => ("", vec![]),
 		};
 
-		let mut stmt = todo_storer.conn.prepare(
-			&(String::from(
-			"SELECT
-				id,
-				task,
-				finished
-			FROM todo") + sql_condition)).expect("Invalid sql query");
+		let mut stmt = todo_storer
+			.conn
+			.prepare(&(String::from("SELECT id, task, finished FROM todo") + sql_condition))
+			.expect("Invalid sql query");
 
-		let todo_tasks_result = stmt.query_map::<ToDoTask, _, _>(
-			sql_input_parameters,
-			|row|{
-
-			let mut is_task_finished = false;
-			//due to sqlite being dynamically typed, the type of a boolean is uncertain
-			//ugly
-			//TODO find out how to do this better with less boilerplate or just use an i8 as sqlite column type instead of boolean
-			match row.get::<_, String>(2)
-			{
-				Ok(value) => {
-					if value == "true" {
-						is_task_finished = true;
+		let todo_tasks_result = stmt
+			.query_map::<ToDoTask, _, _>(sql_input_parameters, |row| {
+				let mut is_task_finished = false;
+				//due to sqlite being dynamically typed, the type of a boolean is uncertain
+				//ugly
+				//TODO find out how to do this better with less boilerplate or just use an i8 as sqlite column type instead of boolean
+				match row.get::<_, String>(2) {
+					Ok(value) => {
+						if value == "true" {
+							is_task_finished = true;
+						}
 					}
-				}
-				Err(err) => {
-					//if this is false then the column is stored is stored as a INT
-					if err != rusqlite::Error::InvalidColumnType(2, rusqlite::types::Type::Integer) {
-						return Err(err.into())
-					}
+					Err(err) => {
+						//if this is false then the column is stored is stored as a INT
+						if err
+							!= rusqlite::Error::InvalidColumnType(2, rusqlite::types::Type::Integer)
+						{
+							return Err(err.into());
+						}
 
-					match row.get::<_, i32>(2) {
-						Ok(value) => {
-							if value == 1 {
-								is_task_finished = true
+						match row.get::<_, i32>(2) {
+							Ok(value) => {
+								if value == 1 {
+									is_task_finished = true
+								}
 							}
-						},
-						Err(err) => return Err(err.into())
+							Err(err) => return Err(err.into()),
+						}
 					}
 				}
-			}
-			Ok(
-				ToDoTask{
+				Ok(ToDoTask {
 					id: row.get(0)?,
 					task: row.get(1)?,
 					finished: is_task_finished,
-				}
-			)
-		}).expect("Unable to get task/tasks");
+				})
+			})
+			.expect("Unable to get task/tasks");
 
 		//TODO make functional instead
 		let mut todo_tasks: Vec<ToDoTask> = vec![];
 		for task in todo_tasks_result {
 			match task {
 				Ok(t) => todo_tasks.push(t),
-				Err(err) => return Err(err.into())
+				Err(err) => return Err(err.into()),
 			};
 		}
 
-		return Ok(todo_tasks)
+		return Ok(todo_tasks);
 	}
 
 	impl ToDoStore for TodoStorer {
-
-		fn setup(db_file_path: String, reset_store: bool) -> Result<Box<Self>, Box<dyn Error>>{
-
-			let storer = TodoStorer{
-				conn: Connection::open(db_file_path).expect("unable to open sqlite database")
+		fn setup(db_file_path: String, reset_store: bool) -> Result<Box<Self>, Box<dyn Error>> {
+			let storer = TodoStorer {
+				conn: Connection::open(db_file_path).expect("unable to open sqlite database"),
 			};
 
 			if reset_store {
-				match storer.conn.execute(
-					"DROP TABLE IF EXISTS todo",
-					NO_PARAMS,
-				) {
+				match storer.conn.execute("DROP TABLE IF EXISTS todo", NO_PARAMS) {
 					Ok(_) => {
-						storer.conn.execute(
-							"CREATE TABLE todo (
-								id INTEGER PRIMARY KEY AUTOINCREMENT,
-								task TEXT NOT NULL,
-								finished BOOLEAN DEFAULT FALSE
-							)",
-							NO_PARAMS,
-						).unwrap();
-					},
-					Err(err) => return Err(err.into())
+						storer
+							.conn
+							.execute(
+								"CREATE TABLE todo (
+									id INTEGER PRIMARY KEY AUTOINCREMENT,
+									task TEXT NOT NULL,
+									finished BOOLEAN DEFAULT FALSE
+								)",
+								NO_PARAMS,
+							)
+							.unwrap();
+					}
+					Err(err) => return Err(err.into()),
 				}
 			}
 
@@ -285,9 +282,9 @@ pub mod storage{
 					if tasks.len() == 1 {
 						return Ok(tasks[0].copy());
 					}
-					return Err("Invalid number of tasks found")?
-				},
-				Err(err) => return Err(err.into())
+					return Err("Invalid number of tasks found")?;
+				}
+				Err(err) => return Err(err.into()),
 			}
 		}
 		fn get_all(&self) -> Result<Vec<ToDoTask>, Box<dyn Error>> {
@@ -296,45 +293,35 @@ pub mod storage{
 
 		fn add(&self, t: ToDoTask) -> Result<(), Box<dyn Error>> {
 			match self.conn.execute(
-				"INSERT INTO todo
-				(task, finished)
-				VALUES
-				(?1, 0)
-				",
+				"INSERT INTO todo (task, finished) VALUES (?1, 0)",
 				&[t.task],
-			){
+			) {
 				Ok(rows_affected) => {
 					if rows_affected != 1 {
 						Err("Wrong number of rows affected")?; //should be a panic but trying out mixing return error types
 					}
 					Ok(())
-				},
+				}
 				Err(err) => Err(err.into()),
 			}
 		}
 
-		fn update(&self, t: ToDoTask) -> Result<(), Box<dyn Error>>{
+		fn update(&self, t: ToDoTask) -> Result<(), Box<dyn Error>> {
 			match self.conn.execute(
 				"UPDATE todo SET
 					task = ?1,
 					finished = ?2
 				WHERE id = ?3
 				",
-				&[
-					t.task,
-					t.finished.to_string(),
-					t.id.unwrap().to_string()
-				],
-			){
+				&[t.task, t.finished.to_string(), t.id.unwrap().to_string()],
+			) {
 				Ok(rows_affected) => {
 					if rows_affected != 1 {
 						Err("Wrong number of rows affected")? //should be a panic but trying out mixing return error types
 					}
 					Ok(())
-				},
-				Err(err) => {
-					return Err(err.into())
 				}
+				Err(err) => return Err(err.into()),
 			}
 		}
 	}
