@@ -6,7 +6,7 @@ fn main() {
 	let todo_store = sqlite::setup("todo.db".to_string(), true).unwrap();
 
 	loop {
-		let possible_cmdline_args = "list, get [id], add, update";
+		let possible_cmdline_args = "list, get [id], add, update, exit";
 
 		println!("\nEnter command({}): ", possible_cmdline_args);
 		println!("----------------------------------");
@@ -28,11 +28,16 @@ fn main() {
 				"list" => Ok(ToDoActions::List),
 				"add" => Ok(ToDoActions::Add),
 				"update" => Ok(ToDoActions::Update),
+				"exit" => Ok(ToDoActions::Exit),
 				_ => Err("Invalid program argument")?,
 			}
 		};
 
 		match get_enum_from_program_arg(&args[0]).unwrap() {
+			ToDoActions::Exit => {
+				println!("Ok then. See you later.");
+				break;
+			}
 			ToDoActions::Get => {
 				println!("\nSelected get task mode!\n");
 				if args.len() != 2 {
@@ -134,6 +139,7 @@ enum ToDoActions {
 	Update,
 	Get,
 	List,
+	Exit,
 }
 #[derive(Debug, Clone)]
 pub struct ToDoTask {
