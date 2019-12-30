@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package todo;
+
+service Todo {
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse) {}
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {}
+  rpc AddTask(AddTaskRequest) returns (AddTaskResponse) {}
+  rpc UpdateTask(AddTaskRequest) returns (UpdateTaskResponse) {}
+}
+
+message TodoTaskEntity {
+	int64 ID = 1;
+	TodoTask Task = 2;
+}
+message TodoTask {
+	string Name = 2;
+	bool IsFininshed = 3;
+}
+
+message GetTaskRequest {
+	int64 TaskID = 1;
+}
+message GetTaskResponse {
+	TodoTaskEntity Task = 1;
+}
+
+message ListTasksRequest {
+//TODO add query parameters etc
+}
+message ListTasksResponse {
+	repeated TodoTaskEntity Tasks = 1;
+}
+
+message AddTaskRequest {
+	 TodoTask Task = 1;
+}
+message AddTaskResponse {
+	TodoTaskEntity Task = 1;
+}
+
+message UpdateTaskRequest {
+	 TodoTaskEntity Task = 1;
+}
+message UpdateTaskResponse {
+	TodoTaskEntity Task = 1;
+}

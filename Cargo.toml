@@ -1,8 +1,0 @@
-[package]
-name = "todo-app"
-version = "0.1.0"
-authors = ["Jhzn <jhakanzon@gmail.com>"]
-edition = "2018"
-
-[dependencies]
-rusqlite = { version = "0.18.0", features = ["bundled"] }

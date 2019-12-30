@@ -1,0 +1,12 @@
+{{ template "header" }}
+<h2>List of all tasks</h2>
+{{ range $task := .Tasks }}
+<div>
+	ID: {{ $task.ID }}<br>
+	Name: {{ $task.Task.Name }}<br>
+	Finished: {{ $task.Task.IsFininshed }}<br>
+</div>
+<br>
+{{ end }}
+
+{{ template "footer" }}

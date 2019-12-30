@@ -1,0 +1,7 @@
+{{ define "navbar" }}
+{{ range $route := navbarItems }}
+	<a href="{{ $route.LinkPath }}">{{ $route.LinkText }}</a>
+{{ end }}
+<br>
+
+{{ end }}

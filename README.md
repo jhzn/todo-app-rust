@@ -1,14 +1,8 @@
-### **Just me playing around and learning rust**
+## Play project with golang and rust
 
-Note that this depends on the sqlite library which means that it must exists locally. More details here:
-https://github.com/jgallagher/rusqlite#notes-on-building-rusqlite-and-libsqlite3-sys
+### A Todo Task application.
 
-```bash
-#Fetch dependencies
-cargo build
-#Run
-cargo run
-```
+The backend is written in rust and has a SQLite storage. There is a CLI interface and a GRPC server.
+The frontend/web-GUI is written in golang and is a client of the GRPC server.
 
-### **Demo usage**
-![](demo_usage.png)
+Visit the respective directories for additional info.

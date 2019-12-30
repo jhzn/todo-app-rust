@@ -1,9 +1,32 @@
 use std::error::Error;
 use std::io;
-mod sqlite;
+use todo_app::types::*;
+extern crate clap;
+use clap::{App, Arg};
 
+//These are the possible commandline arguments
+#[derive(Debug)]
+enum TodoAction {
+	Add,
+	Update,
+	Get,
+	List,
+	Exit,
+}
 fn main() {
-	let todo_store = sqlite::setup("todo.db".to_string(), true).unwrap();
+	let matches = App::new("Todo-Task CLI application")
+		.version("1.0")
+		.author("Johan Håkansson")
+		.about("A CLI application to create todo tasks")
+		.arg(
+			Arg::with_name("reset-store")
+				.long("reset-store")
+				.help("Whether the SQLite database should be emptied and created anew"),
+		)
+		.get_matches();
+
+	let should_reset_store = matches.is_present("reset-store");
+	let todo_store = todo_app::sqlite::setup("todo.db".to_string(), should_reset_store).unwrap();
 
 	loop {
 		let possible_cmdline_args = "list, get [id], add, update, exit";
@@ -22,23 +45,23 @@ fn main() {
 			return ();
 		}
 
-		let get_enum_from_program_arg = |program_arg: &str| -> Result<ToDoActions, Box<dyn Error>> {
+		let get_enum_from_program_arg = |program_arg: &str| -> Result<TodoAction, Box<dyn Error>> {
 			match program_arg.trim().to_lowercase().as_ref() {
-				"get" => Ok(ToDoActions::Get),
-				"list" => Ok(ToDoActions::List),
-				"add" => Ok(ToDoActions::Add),
-				"update" => Ok(ToDoActions::Update),
-				"exit" => Ok(ToDoActions::Exit),
+				"get" => Ok(TodoAction::Get),
+				"list" => Ok(TodoAction::List),
+				"add" => Ok(TodoAction::Add),
+				"update" => Ok(TodoAction::Update),
+				"exit" => Ok(TodoAction::Exit),
 				_ => Err("Invalid program argument")?,
 			}
 		};
 
 		match get_enum_from_program_arg(&args[0]).unwrap() {
-			ToDoActions::Exit => {
+			TodoAction::Exit => {
 				println!("Ok then. See you later.");
 				break;
 			}
-			ToDoActions::Get => {
+			TodoAction::Get => {
 				println!("\nSelected get task mode!\n");
 				if args.len() != 2 {
 					println!("Missing task id");
@@ -46,41 +69,42 @@ fn main() {
 				}
 				let task_id: i32 = args[1].parse().expect("Invalid id given");
 				let stored_task = todo_store.get(task_id).expect("Unable to get task");
-				stored_task.pretty_print_to_console();
+				stored_task.pretty_print_to_stdout();
 			}
-			ToDoActions::List => {
+			TodoAction::List => {
 				println!("\nSelected list tasks mode!\n");
 				println!("Currently stored tasks are:");
-				let stored_todo_tasks =
-					todo_store.get_all().expect("Unable to retrieve todo tasks");
+				let stored_todo_tasks = todo_store.list().expect("Unable to retrieve todo tasks");
 				if stored_todo_tasks.is_empty() {
 					println!("No tasks are stored!");
 				} else {
 					for task in stored_todo_tasks {
-						task.pretty_print_to_console();
+						task.pretty_print_to_stdout();
 					}
 				}
 			}
-			ToDoActions::Add => {
+			TodoAction::Add => {
 				println!("\nSelected task creation mode!\nEnter task name:");
 				let mut x = String::new();
 				io::stdin().read_line(&mut x).expect("Error reading input");
 				let task_name: &str = x.trim();
 
-				let _new_task = ToDoTask {
+				let _new_task = TodoTask {
 					id: None,
 					task: String::from(task_name),
 					finished: false,
 				};
-				todo_store.add(_new_task).expect("Unable to add task");
+				let stored_task = todo_store.add(_new_task).expect("Unable to add task");
+				println!("Saved task:");
+				stored_task.pretty_print_to_stdout();
 			}
-			ToDoActions::Update => {
+			TodoAction::Update => {
 				let currently_stored_tasks = &todo_store
-					.get_all()
+					.list()
 					.expect("Unable to retrieve tasks when trying to update");
 				println!("\nCurrently stored Tasks:");
 				for task in currently_stored_tasks {
-					task.copy().pretty_print_to_console();
+					task.clone().pretty_print_to_stdout();
 				}
 
 				println!(
@@ -122,7 +146,7 @@ fn main() {
 					}
 				};
 
-				let task = ToDoTask {
+				let task = TodoTask {
 					id: Some(task_id),
 					task: task_name.to_string(),
 					finished: is_task_finished,
@@ -131,48 +155,4 @@ fn main() {
 			}
 		};
 	}
-}
-
-#[derive(Debug)]
-enum ToDoActions {
-	Add,
-	Update,
-	Get,
-	List,
-	Exit,
-}
-#[derive(Debug, Clone)]
-pub struct ToDoTask {
-	id: Option<i32>, //Option because this is set by the database
-	task: String,
-	finished: bool,
-}
-impl ToDoTask {
-	fn pretty_print_to_console(self) {
-		let task_id = match self.id.is_some() {
-			true => self.id.unwrap().to_string(),
-			false => String::from(""),
-		};
-		println!(
-			" - ID: {}, Task: {}, Finished: {:?}",
-			task_id, self.task, self.finished
-		)
-	}
-	//cant derive copy trait, implementing it here instead
-	fn copy(&self) -> Self {
-		return ToDoTask {
-			id: self.id,
-			task: self.task.clone(),
-			finished: self.finished,
-		};
-	}
-}
-
-pub trait ToDoStore {
-	fn get(&self, id: i32) -> Result<ToDoTask, Box<dyn Error>>;
-	fn get_all(&self) -> Result<Vec<ToDoTask>, Box<dyn Error>>;
-	fn add(&self, task: ToDoTask) -> Result<(), Box<dyn Error>>;
-	fn update(&self, task: ToDoTask) -> Result<(), Box<dyn Error>>;
-	//TODO
-	//fn remove(&self, task: ToDoTask) ->  Result<(), Box<dyn Error>>;
 }
