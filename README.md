@@ -18,8 +18,9 @@ Visit the respective directories for additional info.
 
 ```shell
 #Shell 1
-cd backend && \
-cargo run --bin server
+cd backend
+#The commandline argument is to create a new database, in case there isn't one
+cargo run --bin server -- --reset-storage
 
 #Shell 2
 cd frontend && \

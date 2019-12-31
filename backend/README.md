@@ -5,7 +5,7 @@ https://github.com/jgallagher/rusqlite#notes-on-building-rusqlite-and-libsqlite3
 I have this in my environment:
 
 ```shell
-SQLITE3_LIB_DIR=/usr/lib/x86_64-linux-gnu/
+SQLITE3_LIB_DIR=/usr/lib/x86_64-linux-gnu/
 ```
 
 ```bash
