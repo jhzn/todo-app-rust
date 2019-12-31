@@ -19,14 +19,14 @@ fn main() {
 		.author("Johan Håkansson")
 		.about("A CLI application to create todo tasks")
 		.arg(
-			Arg::with_name("reset-store")
-				.long("reset-store")
+			Arg::with_name("reset-storage")
+				.long("reset-storage")
 				.help("Whether the SQLite database should be emptied and created anew"),
 		)
 		.get_matches();
 
-	let should_reset_store = matches.is_present("reset-store");
-	let todo_store = todo_app::sqlite::setup("todo.db".to_string(), should_reset_store).unwrap();
+	let should_reset_storage = matches.is_present("reset-storage");
+	let todo_store = todo_app::sqlite::setup("todo.db".to_string(), should_reset_storage).unwrap();
 
 	loop {
 		let possible_cmdline_args = "list, get [id], add, update, exit";

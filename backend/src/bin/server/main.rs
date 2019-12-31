@@ -20,18 +20,18 @@ fn main() {
 				.help("The port the GRPC server should run on"),
 		)
 		.arg(
-			Arg::with_name("reset-store")
-				.long("reset-store")
+			Arg::with_name("reset-storage")
+				.long("reset-storage")
 				.help("Whether the SQLite database should be emptied and created anew"),
 		)
 		.get_matches();
 
 	//program args
 	let port = clap::value_t!(matches.value_of("port"), u16).expect("Port is not a valid number");
-	let should_reset_store = matches.is_present("reset-store");
+	let should_reset_storage = matches.is_present("reset-storage");
 
 	//setup database
-	let todo_store = todo_app::sqlite::setup("todo.db".to_string(), should_reset_store)
+	let todo_store = todo_app::sqlite::setup("todo.db".to_string(), should_reset_storage)
 		.expect("failed to setup SQLite database");
 
 	//Setup GRPC server implementation
