@@ -7,24 +7,11 @@ The frontend/web-GUI is written in golang and is a client of the GRPC server.
 
 Visit the respective directories for additional info.
 
-### Building application
-
-```shell
-#Assuming a working rust/golang/protoc dev environment, this script ought to work.
-./build.sh
-```
-
 ### Starting web application
 
-```shell
-#Shell 1
-cd backend
-#The commandline argument is to create a new database, in case there isn't one
-cargo run --bin server -- --reset-storage
-
-#Shell 2
-cd frontend && \
-go run cmd/main.go
+```sh
+#this builds docker images and starts application
+docker-compose up
 
 #now go to http://localhost:1337
 ```

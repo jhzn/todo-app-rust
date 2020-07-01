@@ -9,8 +9,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/jhzn/todo_app/m/v2/internal/app"
-	pb "github.com/jhzn/todo_app/m/v2/pkg/proto"
+	"github.com/jhzn/todo_app/internal/app"
+	pb "github.com/jhzn/todo_app/pkg/proto"
 	"google.golang.org/grpc"
 )
 
@@ -23,7 +23,7 @@ func main() {
 	log.Printf("Attempting to connect to grpc server on port %d", grpcClientPort)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelFunc()
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf(":%d", grpcClientPort), grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, fmt.Sprintf("backend:%d", grpcClientPort), grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}

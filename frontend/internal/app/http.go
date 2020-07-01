@@ -7,7 +7,7 @@ import (
 	"text/template"
 
 	"github.com/gorilla/schema"
-	pb "github.com/jhzn/todo_app/m/v2/pkg/proto"
+	pb "github.com/jhzn/todo_app/pkg/proto"
 )
 
 //TODO improve error handling
@@ -65,6 +65,9 @@ func (s Server) Serve(port uint16) error {
 		listRoute.URLPath,
 		s.handleList(listRoute.TemplateName),
 	)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, listRoute.URLPath, http.StatusSeeOther)
+	})
 	http.HandleFunc(addRoute.URLPath,
 		s.handleAdd(
 			addRoute,
@@ -80,11 +83,15 @@ func (s Server) handleList(templateName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tasks, err := s.Store.ListTasks(r.Context(), &pb.ListTasksRequest{})
 		if err != nil {
-			panic(err)
+			fmt.Printf("%v\n", err)
+			return
 		}
 
 		conved_tasks := []pb.TodoTaskEntity{}
 		for _, t := range tasks.Tasks {
+			if t == nil {
+				panic("t is nil")
+			}
 			conved_tasks = append(conved_tasks, *t)
 		}
 
@@ -128,10 +135,11 @@ func (s Server) addTask(routeToRedirectToOnSuccess route, w http.ResponseWriter,
 		Task     string
 		Finished bool
 	}
-	err = schema.NewDecoder().Decode(&addRequest, r.PostForm)
-	if err != nil {
+
+	if err = schema.NewDecoder().Decode(&addRequest, r.PostForm); err != nil {
 		log.Printf("%v", err)
 	}
+	fmt.Printf("%+v\n", addRequest)
 
 	_, err = s.Store.AddTask(r.Context(), &pb.AddTaskRequest{
 		Task: &pb.TodoTask{

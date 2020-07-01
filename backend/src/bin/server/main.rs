@@ -28,8 +28,12 @@ fn main() {
 
 	//program args
 	let port = clap::value_t!(matches.value_of("port"), u16).expect("Port is not a valid number");
-	let should_reset_storage = matches.is_present("reset-storage");
+	let mut should_reset_storage = matches.is_present("reset-storage");
 
+	//if the database doesnt exists we need to create it
+	if !std::path::Path::new("todo.db").exists() {
+		should_reset_storage = true
+	}
 	//setup database
 	let todo_store = todo_app::sqlite::setup("todo.db".to_string(), should_reset_storage)
 		.expect("failed to setup SQLite database");

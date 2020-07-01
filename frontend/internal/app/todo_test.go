@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/jhzn/todo_app/m/v2/pkg/proto"
+	pb "github.com/jhzn/todo_app/pkg/proto"
 	"google.golang.org/grpc"
 )
 

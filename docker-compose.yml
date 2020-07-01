@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+  frontend:
+    tty: true
+    image: todo-frontend
+    build:
+      context: .
+      dockerfile: ./docker/frontend.Dockerfile
+      target: develop
+    ports:
+      - "1337:1337"
+    volumes:
+      - ./frontend:/app/
+
+  backend:
+    tty: true
+    image: todo-backend
+    build:
+      context: .
+      dockerfile: ./docker/backend.Dockerfile
+      target: develop
+    ports:
+      - "9000:9000"
+    environment:
+      - TERM=xterm-256color`
+    volumes:
+      - ./todo.proto:/app/todo.proto:ro
+      - ./backend:/app/

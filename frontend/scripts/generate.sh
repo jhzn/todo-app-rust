@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT=".."
 OUT_DIR="$PROJECT_ROOT/frontend/pkg/proto/"
 
 rm -rf "$OUT_DIR" && \
