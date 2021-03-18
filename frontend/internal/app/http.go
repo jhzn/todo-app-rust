@@ -59,8 +59,10 @@ func (s Server) Serve(port uint16) error {
 	}
 	s.templates = tpl
 
-	//doing it this way moves the resolving of these routes to the time of startup of the application instead of having them resolved at runtime
-	//it also avoids having them specified elsewhere, ie the source of truth is right here
+	//The URL's are all defined and used here. We don't have any references in the HTML for example
+	//Doing it this way moves the resolving of these routes to the time of startup of the application instead of having them resolved at runtime.
+	//This means we won't have any dead references scattered throughout the application.
+	//It also avoids having them specified elsewhere, ie the source of truth is right here
 	http.HandleFunc(
 		listRoute.URLPath,
 		s.handleList(listRoute.TemplateName),
