@@ -1,6 +1,3 @@
 /target
 **/*.rs.bk
 todo.db
-#wip fix
-src/grpc/*
-!src/grpc/mod.rs
